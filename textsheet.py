@@ -6,49 +6,98 @@ from watchdog.observers import Observer
 from watchdog.events import *
 from datetime import datetime, timedelta
 
-# TODO create better table API
+# Table class giving access to basic functions.
+# Each Table is linked to a file.
+class Table:
+	def __init__(self, file):
+		self.table = []
+		self.file = file
+	
+	def get(self,i,j):
+		i = i-1
+		j = j-1
+		if (i >= len(self.table)):
+			return ""
+		if (j >= len(self.table[i])):
+			return ""
+		return self.table[i][j]
 
-# Table File Layout
-################################################
-# The File starts with TSV values in rows
-# Then __code__ signifies the start of the code segment
-# Then code
+	def val(self,i,j):
+		s = self.get(i,j)
+		if (s == ""):
+			return 0
+		return eval(s)
 
-table = []
-file = ""
+	def set(self,i,j,content):
+		i = i-1
+		j = j-1
+		while (i >= len(self.table)):
+			self.table.append([])
+		while(j >= len(self.table[i])):
+			self.table[i].append("")
+		self.table[i][j] = str(content)
+	
+	def recalculate(self):
+		f = open(self.file, "r")
+		content = f.read()
+		f.close()
+		c = self.parse(content)
 
-# Table API
+		exec(c)
 
-def cell(i,j):
-	global table
-	i = i-1
-	j = j-1
-	if (i >= len(table)):
-		return ""
-	if (j >= len(table[i])):
-		return ""
-	return table[i][j]
+		newcontent = self.toString() + "\n__code__\n" + c
+		f = open(self.file, "w")
+		f.write(newcontent)
+		f.close()
+	
+	def parse(self,s):
+		self.table = []
+		lines = s.splitlines()
+		i = 0
+		while((lines[i] != "__code__") and (i < len(lines)-1)):
+			line = []
+			cells = lines[i].split("\t")
+			j = 0
+			while(j < len(cells)):
+				line.append(cells[j])
+				j += 1
+			self.table.append(line)
+			i += 1
+		if (i >= len(lines)):
+			return ""
+		code = ""
+		i += 1
+		while(i < len(lines)):
+			code += lines[i]
+			if (i < len(lines)-1):
+				code += "\n"
+			i += 1
+		return code
+	
+	def toString(self):
+		out = ""
+		i = 0
+		while(i < len(self.table)):
+			j = 0
+			while(j < len(self.table[i])):
+				out += str(self.table[i][j])
+				if (j < len(self.table[i])-1):
+					out += "\t"
+				j += 1
+			if (i < len(self.table)-1):
+				out += "\n"
+			i += 1
+		return out
 
-def val(i,j):
-	s = cell(i,j)
-	if (s == ""):
-		return 0
-	return eval(s)
+	def printTable(self):
+		print(self.toString())
 
-def set(i,j,content):
-	global table
-	i = i-1
-	j = j-1
-	while (i >= len(table)):
-		table.append([])
-	while(j >= len(table[i])):
-		table[i].append([])
-	table[i][j] = str(content)
-
+# Handler to check for file modifications
 class FileChangeHandler(FileSystemEventHandler):
-	def __init__(self):
+	def __init__(self, table):
 		super(FileSystemEventHandler, self).__init__()
 		self.last_modified = datetime.now()
+		self.table = table
           
 	def on_modified(self, event):
 		if datetime.now() - self.last_modified < timedelta(seconds=1):
@@ -57,86 +106,51 @@ class FileChangeHandler(FileSystemEventHandler):
 		if (event.is_directory):
 			print("directory")
 			return
-		if (os.path.normpath(file) != os.path.normpath(event.src_path)):
+		if (os.path.normpath(table.file) != os.path.normpath(event.src_path)):
 			print("last change to young")
 			return
 		print("recalculating table")
-		recalculateTable()
+		table.recalculate()
 		self.last_modified = datetime.now()
 
-def parse(str):
+# Table API
+# These are the most commonly used functions providing
+# spreadsheet-like functionality.
+# They are shorthands for functions on the current Table.
+# (It is possible to open additional Tables from within a Table!)
+#
+# All Table indices start at 1.
+
+table = None
+
+# Returns the content at (row,col) as a string.
+def get(row, col):
 	global table
-	table = []
-	lines = str.splitlines()
-	i = 0
-	while(lines[i] != "__code__" and i < len(lines)):
-		line = []
-		cells = lines[i].split("\t")
-		j = 0
-		while(j < len(cells)):
-			line.append(cells[j])
-			j += 1
-		table.append(line)
-		i += 1
-	if (i >= len(lines)):
-		return ""
-	if (lines[i] != "__code__"):
-		raise Exception("no code block found")
-	code = ""
-	i += 1
-	while(i < len(lines)):
-		code += lines[i]
-		if (i < len(lines)-1):
-			code += "\n"
-		i += 1
-	return code
+	return table.get(row,col)
 
-def tableToString():
+# Returns the content at (row,col) as an evaluated python object (e.g. a number).
+def val(row, col):
+	print(str(row) + "," + str(col))
 	global table
-	out = ""
-	i = 0
-	while(i < len(table)):
-		j = 0
-		while(j < len(table[i])):
-			out += str(table[i][j])
-			if (j < len(table[i])-1):
-				out += "\t"
-			j += 1
-		if (i < len(table)-1):
-			out += "\n"
-		i += 1
-	return out
+	return table.val(row,col)
 
-def printTable():
-	print(tableToString())
-
-def recalculateTable():
-	global file
+# Sets the content at (row,col) to val.
+# In this process val will be converted to a string.
+def set(row, col, val):
+	print(str(row) + "," + str(col) + ":" + str(val))
 	global table
-	f = open(file, "r")
-	content = f.read()
-	f.close()
-	#print(content)
-	c = parse(content)
-	exec(c)
-
-	newcontent = tableToString() + "\n__code__\n" + c
-	f = open(file, "w")
-	f.write(newcontent)
-	f.close()
-
-
+	table.set(row, col, val)
 
 if __name__ == "__main__":
 	if (len(sys.argv) < 2):
 		raise Exception("no file given")
-	file = sys.argv[1]
-	path = os.path.dirname(file)
-	recalculateTable()
+	table = Table(sys.argv[1])
+	table.recalculate()
+	dirpath = os.path.dirname(table.file)
 
-	event_handler = FileChangeHandler()
+	event_handler = FileChangeHandler(table)
 	observer = Observer()
-	observer.schedule(event_handler, path, recursive=False)
+	observer.schedule(event_handler, dirpath, recursive=False)
 	observer.start()
 	try:
 		while True:
@@ -144,4 +158,3 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		observer.stop()
 	observer.join()
-
