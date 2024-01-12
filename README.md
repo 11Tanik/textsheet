@@ -5,10 +5,13 @@
 ## Installation
 
 1. Clone the repository.
-2. Run `py textsheet.py <path/to/your/file>` to open textsheet.
-3. Open `<path/to/your/file>` with a text editor of your choice to start editing.
 
 ## Usage
+
+1. Run `py textsheet.py <path/to/your/file>` to open textsheet on your file.
+`textsheet` now works in the background and writes its changes directly to the file.
+2. Open your file with a text editor of your choice to start editing.
+As soon as you save a change, `textsheet` will run.
 
 `textsheet` works on text files containing **T**ab **S**eperated **V**alues (TSV).
 Additionally these files may have a line containing `__code__` followed by lines of valid python code.
