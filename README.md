@@ -6,6 +6,7 @@
 
 1. Clone the repository.
 2. Run `py textsheet.py <path/to/your/file>` to open textsheet.
+3. Open `<path/to/your/file>` with a text editor of your choice to start editing.
 
 ## Usage
 
