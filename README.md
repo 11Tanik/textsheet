@@ -7,11 +7,13 @@
 1. Clone the repository.
 2. Run `py textsheet.py <path/to/your/file>` to open textsheet.
 
-## How To
+## Usage
 
 `textsheet` works on text files containing **T**ab **S**eperated **V**alues (TSV).
 Additionally these files may have a line containing `__code__` followed by lines of valid python code.
 This code will be executed on loading the file with `textsheet` and on each saved change to the file.
+
+To easily view TSV files a text editor with support for elastic tabstops is recommended.
 
 ## Examples
 
