@@ -12,6 +12,7 @@ class Table:
 	def __init__(self, file):
 		self.table = []
 		self.file = file
+		self.code = ""
 	
 	def get(self,i,j):
 		i = i-1
@@ -37,15 +38,30 @@ class Table:
 			self.table[i].append("")
 		self.table[i][j] = str(content)
 	
-	def recalculate(self):
+	def row(self, r):
+		r -= 1
+		while (r >= len(self.table)):
+			self.table.append([])
+		return self.table[r]
+	
+	def col(self, c):
+		c -= 1
+		col = []
+		for row in self.table:
+			while(c >= len(row)):
+				row.append("")
+			col.append(row[c])
+		return col
+	
+	def reload(self):
 		f = open(self.file, "r")
 		content = f.read()
 		f.close()
-		c = self.parse(content)
-
-		exec(c)
-
-		newcontent = self.toString() + "\n__code__\n" + c
+		self.code = self.parse(content)
+		exec(self.code)
+	
+	def writeOut(self):
+		newcontent = self.toString() + "\n__code__\n" + self.code
 		f = open(self.file, "w")
 		f.write(newcontent)
 		f.close()
@@ -110,7 +126,8 @@ class FileChangeHandler(FileSystemEventHandler):
 			print("last change to young")
 			return
 		print("recalculating table")
-		table.recalculate()
+		table.reload()
+		table.writeOut()
 		self.last_modified = datetime.now()
 
 # Table API
@@ -141,11 +158,20 @@ def set(row, col, val):
 	global table
 	table.set(row, col, val)
 
+def row(r):
+	global table
+	return table.row(r)
+
+def col(c):
+	global table
+	return table.col(c)
+
 if __name__ == "__main__":
 	if (len(sys.argv) < 2):
 		raise Exception("no file given")
 	table = Table(sys.argv[1])
-	table.recalculate()
+	table.reload()
+	table.writeOut()
 	dirpath = os.path.dirname(table.file)
 
 	event_handler = FileChangeHandler(table)
