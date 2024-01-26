@@ -27,7 +27,12 @@ class Table:
 		s = self.get(i,j)
 		if (s == ""):
 			return 0
-		return eval(s)
+		r = None
+		try:
+			r = eval(s)
+		except BaseException as e:
+			print(str(e))
+		return r
 
 	def set(self,i,j,content):
 		i = i-1
@@ -58,7 +63,10 @@ class Table:
 		content = f.read()
 		f.close()
 		self.code = self.parse(content)
-		exec(self.code)
+		try:
+			exec(self.code)
+		except BaseException as e:
+			print(str(e))
 	
 	def writeOut(self):
 		newcontent = self.toString() + "\n__code__\n" + self.code
